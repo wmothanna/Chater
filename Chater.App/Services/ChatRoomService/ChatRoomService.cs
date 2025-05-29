@@ -25,14 +25,14 @@ public class ChatRoomService
     dto.Description = dto.Description.Trim().Normalize();
     
     if (_roomRepo.Where(r => r.CreatedById == uid).Count() == _userOpts.Value.ChatRoomsLimit )
-      return _resFactory.Failure("User hit chat rooms limit", StatusCodes.Status409Conflict);
+      return _resFactory.Failure("User hit chat rooms limit", StatusCodes.Status409Conflict, "ROOM_LIMIT_HIT");
 
     var checkRoomNameResult = CheckRoomName(dto.Name);
     if (! checkRoomNameResult.IsSuccess)
       return checkRoomNameResult; 
 
     if (await _roomRepo.GetSingleAsync(r => r.Name == dto.Name) is not null)
-      return _resFactory.Failure("Chat room name already used", StatusCodes.Status409Conflict);
+      return _resFactory.Failure("Chat room name already used", StatusCodes.Status409Conflict, "ROOM_NAME_USED");
 
     var room = dto.MapToRoom();
     room.CreatedById = uid;
@@ -56,10 +56,10 @@ public class ChatRoomService
 
     var room = await _roomRepo.GetSingleAsync(r => r.Name.Equals(roomName));
     if (room is null)
-      return _resFactory.Failure($"No such room with room name \"{roomName}\"", StatusCodes.Status404NotFound);
+      return _resFactory.Failure($"No such room with room name \"{roomName}\"", StatusCodes.Status404NotFound, "ROOM_NOT_FOUND");
     
     if (room.CreatedById != uid)
-      return _resFactory.Failure(string.Empty, StatusCodes.Status403Forbidden);
+      return _resFactory.Failure(string.Empty, StatusCodes.Status403Forbidden, "NOT_OWNED_ROOM");
     
     await _roomRepo.RemoveAsync(room);
     _logger.LogInformation("Finished chat room deletion.");
@@ -71,7 +71,7 @@ public class ChatRoomService
   {
     var rawRoom = await _roomRepo.GetSingleAsync(r => r.Name.Equals(roomName));
     if (rawRoom is null)
-      return _resFactory.Failure<ChatRoomResponseDto>($"No such room with room name \"{roomName}\"", StatusCodes.Status404NotFound);
+      return _resFactory.Failure<ChatRoomResponseDto>($"No such room with room name \"{roomName}\"", StatusCodes.Status404NotFound, "ROOM_NOT_FOUND");
 
     var dto = new ChatRoomResponseDto{
       Name = rawRoom.Name,
@@ -109,14 +109,14 @@ public class ChatRoomService
     int nameMaxLengthInDb = 128;
 
     if (string.IsNullOrEmpty(name))
-      return _resFactory.Failure($"chat room name can't be empty", StatusCodes.Status400BadRequest);
+      return _resFactory.Failure($"chat room name can't be empty", StatusCodes.Status400BadRequest, "ROOM_NAME_REQUIRED");
 
     if (name.Length >= nameMaxLengthInDb)
-      return _resFactory.Failure($"chat room name can't be more than {nameMaxLengthInDb}", StatusCodes.Status400BadRequest);
+      return _resFactory.Failure($"chat room name can't be more than {nameMaxLengthInDb}", StatusCodes.Status400BadRequest, "LONG_ROOM_NAME");
 
     var pattern = @"^[\p{L}\p{M}\p{N} _-]+$"; // regex pattern that allows all characters from all languages, numbers, hyphens, underscors and whitspaces.
     if (! Regex.IsMatch(name, pattern))
-      return _resFactory.Failure($"chat room name has invalid format", StatusCodes.Status400BadRequest);
+      return _resFactory.Failure($"chat room name has invalid format", StatusCodes.Status400BadRequest, "ROOM_NAME_FORMAT_ERR");
 
     return _resFactory.Success();
   }

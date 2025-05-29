@@ -26,17 +26,17 @@ public class AuthService
     dto.Email = dto.Email.Trim();
     dto.Password = dto.Password.Trim();
 
-    if (string.IsNullOrEmpty(dto.Username)) return _serviceResultFactory.Failure("Username required", StatusCodes.Status400BadRequest);
-    if (string.IsNullOrEmpty(dto.Email)) return _serviceResultFactory.Failure("Email required", StatusCodes.Status400BadRequest);
-    if (string.IsNullOrEmpty(dto.Password)) return _serviceResultFactory.Failure("Password required", StatusCodes.Status400BadRequest);
+    if (string.IsNullOrEmpty(dto.Username)) return _serviceResultFactory.Failure("Username required", StatusCodes.Status400BadRequest, "USERNAME_REQUIRED");
+    if (string.IsNullOrEmpty(dto.Email)) return _serviceResultFactory.Failure("Email required", StatusCodes.Status400BadRequest, "EMAIL_REQUIRED");
+    if (string.IsNullOrEmpty(dto.Password)) return _serviceResultFactory.Failure("Password required", StatusCodes.Status400BadRequest, "PWD_REQUIRED");
 
-    if (!IsValidUsername(dto.Username)) return _serviceResultFactory.Failure("Username must only contain [[0 - 1] | [a - b] | [A - B] | [أ - ي]]", StatusCodes.Status400BadRequest);
+    if (!IsValidUsername(dto.Username)) return _serviceResultFactory.Failure("Username must only contain [[0 - 1] | [a - b] | [A - B] | [أ - ي]]", StatusCodes.Status400BadRequest, "USERNAME_FORMAT_ERR");
 
     dto.Email = dto.Email.ToLower();
-    if (!IsValidEmail(dto.Email))  return _serviceResultFactory.Failure("Incorrect email format", StatusCodes.Status400BadRequest);
+    if (!IsValidEmail(dto.Email))  return _serviceResultFactory.Failure("Incorrect email format", StatusCodes.Status400BadRequest, "EMAIL_FORMAT_ERR");
 
     if (await _userRepo.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email))
-      return _serviceResultFactory.Failure("User with username or email already exists", StatusCodes.Status409Conflict);
+      return _serviceResultFactory.Failure("User with username or email already exists", StatusCodes.Status409Conflict, "USERNAME_USED");
 
     var pwdCheckRes = CheckPassword(dto.Password);
     if (! pwdCheckRes.IsSuccess) return pwdCheckRes;
@@ -49,7 +49,7 @@ public class AuthService
       await _userRepo.AddAsync(user);
     }
     catch{
-      return _serviceResultFactory.Failure("Something went wrong in registration process", StatusCodes.Status409Conflict);
+      return _serviceResultFactory.Failure("Something went wrong in registration process", StatusCodes.Status409Conflict, "GENERIC_ERR");
     }
     return _serviceResultFactory.Success();
   }
@@ -58,15 +58,15 @@ public class AuthService
     dto.UsernameOrEmail = dto.UsernameOrEmail.Trim();
     dto.Password = dto.Password.Trim();
 
-    if (string.IsNullOrEmpty(dto.UsernameOrEmail)) return _serviceResultFactory.Failure<string>("Username Or Email field required", StatusCodes.Status400BadRequest);
-    if (string.IsNullOrEmpty(dto.Password)) return _serviceResultFactory.Failure<string>("Password field required", StatusCodes.Status400BadRequest);
+    if (string.IsNullOrEmpty(dto.UsernameOrEmail)) return _serviceResultFactory.Failure<string>("Username Or Email field required", StatusCodes.Status400BadRequest, "USERNAME_EMAIL_REQUIRED");
+    if (string.IsNullOrEmpty(dto.Password)) return _serviceResultFactory.Failure<string>("Password field required", StatusCodes.Status400BadRequest, "PWD_REQUIRED");
     
     User? user = await _userRepo.GetSingleAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail.ToLower());
     if
     (
       user is null
       || (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
-    ){ return _serviceResultFactory.Failure<string>("Invalid username, email or password", StatusCodes.Status400BadRequest);}
+    ){ return _serviceResultFactory.Failure<string>("Invalid username, email or password", StatusCodes.Status400BadRequest, "INVALID_CREDENTIALS");}
 
     string jwt = GenerateJwt(user);    
     return _serviceResultFactory.Success(jwt);
@@ -113,9 +113,9 @@ public class AuthService
   private ServiceResult CheckPassword(string Password)
   {
     if (Password.Length < 12)
-      return _serviceResultFactory.Failure("Password length must at least consist of 12 degits", StatusCodes.Status400BadRequest);
+      return _serviceResultFactory.Failure("Password length must at least consist of 12 degits", StatusCodes.Status400BadRequest, "SHORT_PWD");
     if (Password.Length > 255)
-      return _serviceResultFactory.Failure("Password can't be more than 255 degit", StatusCodes.Status400BadRequest);
+      return _serviceResultFactory.Failure("Password can't be more than 255 degit", StatusCodes.Status400BadRequest, "LONG_PWD");
     return _serviceResultFactory.Success();
   }
 }
