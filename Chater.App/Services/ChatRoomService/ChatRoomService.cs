@@ -81,7 +81,7 @@ public class ChatRoomService
     return _resFactory.Success(dto);
   }
 
-  public IEnumerable<ChatRoomResponseDto> GetJoined(int uid)
+  public ServiceResult<IEnumerable<ChatRoomResponseDto>> GetJoined(int uid)
   {
     var rawRooms = _roomMemberRepo.GetAll(rm => rm.MemeberId.Equals(uid), [nameof(Room)]);
     var dtos = rawRooms.Select(r => 
@@ -90,10 +90,10 @@ public class ChatRoomService
       Description = r.Room.Description,
       AvatarUrl = r.Room.RoomAvatarUrl ?? string.Empty
     });
-    return dtos;
+    return _resFactory.Success(dtos);
   }
 
-  public IEnumerable<ChatRoomResponseDto> GetOwned(int uid)
+  public ServiceResult<IEnumerable<ChatRoomResponseDto>> GetOwned(int uid)
 {
   var rawRooms = _roomRepo.GetAll(r => r.CreatedById == uid);
   var dtos = rawRooms.Select(r => 
@@ -102,7 +102,7 @@ public class ChatRoomService
     Description = r.Description,
     AvatarUrl = r.RoomAvatarUrl ?? string.Empty
   });
-  return dtos;
+  return _resFactory.Success(dtos);
 }
 
   private ServiceResult CheckRoomName(string name){

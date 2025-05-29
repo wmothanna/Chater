@@ -16,20 +16,20 @@ public class ChatRoomController(IChatRoomService _roomSrvc, IMessageService _msg
   public ActionResult<IEnumerable<ChatRoomResponseDto>> GetOwned(){
     int uid = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     var result = _roomSrvc.GetOwned(uid);
-    return Ok(result);
+    return Ok(result.Data);
   }
   [HttpGet("joined")]
   public ActionResult<IEnumerable<ChatRoomResponseDto>> GetJoined(){
     int uid = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     var result = _roomSrvc.GetJoined(uid);
-    return Ok(result);
+    return Ok(result.Data);
   }
 
   [HttpGet]
   public async Task<ActionResult<ChatRoomResponseDto>> GetByName([FromQuery] string roomName){
     var result = await _roomSrvc.GetByName(roomName);
     if (result.StatusCode.Equals(StatusCodes.Status404NotFound))
-      return NotFound(result.ErrorMessage);
+      return NotFound(result);
     return Ok(result.Data);
   }
 
@@ -39,9 +39,9 @@ public class ChatRoomController(IChatRoomService _roomSrvc, IMessageService _msg
     var result = await _roomSrvc.CreateRoom(uid, dto);
 
     if (result.StatusCode.Equals(StatusCodes.Status400BadRequest))
-      return BadRequest(result.ErrorMessage);
+      return BadRequest(result);
     if (result.StatusCode.Equals(StatusCodes.Status409Conflict))
-      return BadRequest(result.ErrorMessage);
+      return BadRequest(result);
 
     return Created();
   }
@@ -51,7 +51,7 @@ public class ChatRoomController(IChatRoomService _roomSrvc, IMessageService _msg
     var result = await _roomSrvc.DeleteRoom(uid, roomName);
 
     if (result.StatusCode.Equals(StatusCodes.Status404NotFound))
-      return NotFound(result.ErrorMessage);
+      return NotFound(result);
     if (result.StatusCode.Equals(StatusCodes.Status403Forbidden))
       return Forbid(BearerTokenDefaults.AuthenticationScheme);
 
@@ -63,7 +63,7 @@ public class ChatRoomController(IChatRoomService _roomSrvc, IMessageService _msg
       int uid = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
       var result = await _msgSrvc.GetAll(uid, roomName);
       if (result.StatusCode.Equals(StatusCodes.Status404NotFound))
-          return NotFound(result.ErrorMessage);
+          return NotFound(result);
       if (result.StatusCode.Equals(StatusCodes.Status403Forbidden))
           return Forbid();
       return Ok(result.Data);
